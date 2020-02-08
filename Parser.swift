@@ -1,16 +1,20 @@
-func parseChar(char: Character, input: String) -> (Character, String)? {
-    if (input.count == 0 || input.first != char) {
-        return nil
+func parseChar(_ char: Character, _ input: String) -> (Character, String)? {
+  if let first = strHead(input) {
+    if (first == char) {
+      return (first, strTail(input))
+    } else {
+      return nil
     }
-        
-    return (input.first, input.dropFirst(1))
+  } else {
+    return nil
+  }
 }
 
-func strHead(str: String) -> Character? {
-    return str.first
+func strHead(_ str: String) -> Character? {
+  return str.first
 }
 
-func strTail(str: String) -> String? {
-    return str.count == 0 ? nil : str.suffix(from: 1)
+func strTail(_ str: String) -> String {
+  return String(str.dropFirst(1))
 }
 
