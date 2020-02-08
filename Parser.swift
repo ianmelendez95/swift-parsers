@@ -1,13 +1,25 @@
 typealias Parser<A> = ((String) -> (A, String)?)
 
-// typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
+/* ************ *
+ * HTML PARSING *
+ * ************ */
 
-/* func emptyHtmlTag() -> Parser<EmptyHtmlTag> { */
-/*   let leftAngle = char("<") */
-/*   let rightAngle = char(">") */
+typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
+
+func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
+  let leftAngle = char("<")
+  let rightAngle = char(">")
   
-/*   return sequence(leftAngle, bind(word(), { tagName in (tagName, [:]) })) */
-/* } */
+  return sequence(leftAngle, fmap(word(), { tagName in (tagName, [:]) }))
+}
+
+func testEmptyHtmlTag() {
+  print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>"))
+}
+
+/* **************** *
+ * PARSER INSTANCES *
+ * **************** */ 
 
 func testWord() {
   print(word()("hello world")) // ("hello", "world")
