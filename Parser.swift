@@ -13,6 +13,18 @@ func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
   return sequence(leftAngle, fmap(word(), { tagName in (tagName, [:]) }))
 }
 
+/* func tagAttribute() -> Parser<(String, String)> { */
+/*   let key = fmap(many(satisfy({ c in c != "=" })), charsToString) */
+/*   let equals = char("=") */
+/*   let value = quoted(word()) */ 
+
+/*   return { input in (("not", "impl"), "stop") } */
+/* } */
+
+/* func quoted<A>(_ parser: Parser<A>) -> Parser<A> { */
+/*   return sequence(char("\""), ) */
+/* } */
+
 func testEmptyHtmlTag() {
   print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>"))
 }
@@ -41,6 +53,30 @@ func many<A>(_ parser: @escaping Parser<A>) -> Parser<[A]> {
 
     return (result, curInput)
   }
+}
+
+func keepFirst<A,B>
+( _ firstParser: @escaping Parser<A>
+, _ secondParser: @escaping Parser<B>) 
+-> Parser<A> {
+  return { input in 
+    if let (result1, rest1) = firstParser(input) {
+      if let (_, rest2) = secondParser(rest1) {
+        return (result1, rest2)
+      }
+    }
+
+    return nil
+  }
+}
+
+func testKeepFirst() {
+  let hParser = char("h")
+  let eParser = char("e")
+
+  let parsed = keepFirst(hParser, eParser)("hello")
+
+  print(parsed)
 }
 
 func lift<A,B,C>
