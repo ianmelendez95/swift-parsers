@@ -1,9 +1,13 @@
 typealias Parser = ((String) -> (Character, String)?)
 
 func char(_ char: Character) -> Parser {
+  return satisfy({ c in c == char })
+}
+
+func satisfy(_ predicate: @escaping ((Character) -> Bool)) -> Parser {
   return { input in
     if let first = strHead(input) {
-      if (first == char) {
+      if (predicate(first)) {
         return (first, strTail(input))
       } else {
         return nil
