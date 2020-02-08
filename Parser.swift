@@ -1,5 +1,18 @@
 typealias Parser<A> = ((String) -> (A, String)?)
 
+func many<A>(_ parser: @escaping Parser<A>) -> Parser<[A]> {
+  return { input in
+    var result: [A] = [] 
+    var curInput = input
+    while let (nextResult, nextInput) = parser(curInput) {
+      result.append(nextResult)
+      curInput = nextInput
+    }
+
+    return (result, curInput)
+  }
+}
+
 func lift<A,B,C>
 ( _ parser1: @escaping Parser<A>
 , _ parser2: @escaping Parser<B>
@@ -68,6 +81,10 @@ func satisfy(_ predicate: @escaping ((Character) -> Bool)) -> Parser<Character> 
   }
 }
 
+func strNull(_ str: String) -> Bool {
+  return str.count == 0
+}
+
 func strHead(_ str: String) -> Character? {
   return str.first
 }
@@ -105,4 +122,13 @@ func testLift() {
   let parsed = lifted("hello")
 
   print(parsed)
+}
+
+func testMany() {
+  let aParser = char("a")
+  let asParser = many(aParser)
+  
+  let parsed = asParser("aardvark")
+
+  print(parsed) // (["a", "a"], "rdvark")
 }
