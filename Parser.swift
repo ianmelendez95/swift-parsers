@@ -1,6 +1,6 @@
-typealias Parser = ((String) -> (Character, String)?)
+typealias Parser<A> = ((String) -> (A, String)?)
 
-func sequence(_ parser1: @escaping Parser, _ parser2: @escaping Parser) -> Parser {
+func sequence<A>(_ parser1: @escaping Parser<A>, _ parser2: @escaping Parser<A>) -> Parser<A> {
   return { input in
     if let (_, rest1) = parser1(input) {
       return parser2(rest1)
@@ -10,11 +10,11 @@ func sequence(_ parser1: @escaping Parser, _ parser2: @escaping Parser) -> Parse
   }
 }
 
-func char(_ char: Character) -> Parser {
+func char(_ char: Character) -> Parser<Character> {
   return satisfy({ c in c == char })
 }
 
-func satisfy(_ predicate: @escaping ((Character) -> Bool)) -> Parser {
+func satisfy(_ predicate: @escaping ((Character) -> Bool)) -> Parser<Character> {
   return { input in
     if let first = strHead(input) {
       if (predicate(first)) {
