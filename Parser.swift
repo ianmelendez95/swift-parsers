@@ -1,4 +1,6 @@
-func parseChar(_ char: Character) -> ((String) -> (Character, String)?) {
+typealias Parser = ((String) -> (Character, String)?)
+
+func char(_ char: Character) -> Parser {
   return { (input: String) -> (Character, String)? in
     if let first = strHead(input) {
       if (first == char) {
