@@ -1,12 +1,14 @@
-func parseChar(_ char: Character, _ input: String) -> (Character, String)? {
-  if let first = strHead(input) {
-    if (first == char) {
-      return (first, strTail(input))
+func parseChar(_ char: Character) -> ((String) -> (Character, String)?) {
+  return { (input: String) -> (Character, String)? in
+    if let first = strHead(input) {
+      if (first == char) {
+        return (first, strTail(input))
+      } else {
+        return nil
+      }
     } else {
       return nil
     }
-  } else {
-    return nil
   }
 }
 
