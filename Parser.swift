@@ -1,5 +1,23 @@
 typealias Parser<A> = ((String) -> (A, String)?)
 
+// typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
+
+/* func emptyHtmlTag() -> Parser<EmptyHtmlTag> { */
+/*   let leftAngle = char("<") */
+/*   let rightAngle = char(">") */
+  
+/*   return sequence(leftAngle, bind(word(), { tagName in (tagName, [:]) })) */
+/* } */
+
+func testWord() {
+  print(word()("hello world")) // ("hello", "world")
+}
+
+// word = any sequential set of characters that are not whitespace
+func word() -> Parser<String> {
+  return fmap(many(nonSpace()), charsToString)
+}
+
 func many<A>(_ parser: @escaping Parser<A>) -> Parser<[A]> {
   return { input in
     var result: [A] = [] 
@@ -63,6 +81,10 @@ func sequence<A,B>(_ parser1: @escaping Parser<A>, _ parser2: @escaping Parser<B
   }
 }
 
+func nonSpace() -> Parser<Character> {
+  return satisfy({ char in !char.isWhitespace })
+}
+
 func char(_ char: Character) -> Parser<Character> {
   return satisfy({ c in c == char })
 }
@@ -91,6 +113,10 @@ func strHead(_ str: String) -> Character? {
 
 func strTail(_ str: String) -> String {
   return String(str.dropFirst(1))
+}
+
+func charsToString(_ chars: [Character]) -> String {
+  return String(chars)
 }
 
 func testSequenced() {
