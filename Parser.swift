@@ -1,7 +1,7 @@
 typealias Parser = ((String) -> (Character, String)?)
 
 func char(_ char: Character) -> Parser {
-  return { (input: String) -> (Character, String)? in
+  return { input in
     if let first = strHead(input) {
       if (first == char) {
         return (first, strTail(input))
