@@ -1,5 +1,21 @@
 typealias Parser<A> = ((String) -> (A, String)?)
 
+func lift<A,B,C>
+( _ parser1: @escaping Parser<A>
+, _ parser2: @escaping Parser<B>
+, _ liftedFunction: @escaping ((A, B) -> C)) 
+-> Parser<C> {
+  return { input in
+    if let (result1, rest1) = parser1(input) {
+      if let (result2, rest2) = parser2(rest1) {
+        return (liftedFunction(result1, result2), rest2)
+      }
+    }
+
+    return nil
+  }
+}
+
 func bind<A,B>
 (_ parser: @escaping Parser<A>, _ bindFunction: @escaping ((A) -> Parser<B>)) 
 -> Parser<B> {
@@ -77,6 +93,16 @@ func testBind() {
     })
 
   let parsed = bound("hello")
+
+  print(parsed)
+}
+
+func testLift() {
+  let hParser = char("h")
+  let eParser = char("e")
+  let lifted = lift(hParser, eParser, { res1, res2 in String(res1) + String(res2) })
+
+  let parsed = lifted("hello")
 
   print(parsed)
 }
