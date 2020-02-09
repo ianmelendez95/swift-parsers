@@ -6,13 +6,30 @@ typealias Parser<A> = ((String) -> (A, String)?)
 
 typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
-func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
-  let leftAngle = char("<")
-  return sequence(leftAngle, fmap(letters(), { tagName in (tagName, [:]) }))
+/* func emptyHtmlTag() -> Parser<EmptyHtmlTag> { */
+/*   let leftAngle = char("<") */
+/*   return sequence(leftAngle, */ 
+/*           fmap(token(letters()), { tagName in */ 
+/*             bind(many(token(tagAttribute()), { attributes in */ 
+/*               nullParser() */
+/*             })) */
+/*           })) */
+/* } */
+
+/* func testEmptyHtmlTag() { */
+/*   print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>")) */
+/* } */
+
+func pairsToDict<A,B>(_ pairs: [(A,B)]) -> [A:B] {
+  var dict: [A:B] = [:]
+  for (key, value) in pairs {
+    dict[key] = value
+  }
+  return dict
 }
 
-func testEmptyHtmlTag() {
-  print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>"))
+func testPairsToDict() {
+  print(pairsToDict([("x", 1), ("y", 2)]))
 }
 
 // TODO - handle escaped quotes
