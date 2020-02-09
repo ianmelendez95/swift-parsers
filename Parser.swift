@@ -6,19 +6,21 @@ typealias Parser<A> = ((String) -> (A, String)?)
 
 typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
-/* func emptyHtmlTag() -> Parser<EmptyHtmlTag> { */
-/*   let leftAngle = char("<") */
-/*   return sequence(leftAngle, */ 
-/*           fmap(token(letters()), { tagName in */ 
-/*             bind(many(token(tagAttribute()), { attributes in */ 
-/*               nullParser() */
-/*             })) */
-/*           })) */
-/* } */
+func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
+  let openBracket = char("<")
+  let attributes: Parser<[String: String]> = 
+    fmap(many(token(tagAttribute())), { attributes in pairsToDict(attributes) })
+  let closeBracket = sequence(char("/"), char(">"))
 
-/* func testEmptyHtmlTag() { */
-/*   print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>")) */
-/* } */
+  return sequence(openBracket, 
+          bind(token(letters()), { tagName in
+            keepFirst(fmap(attributes, { attrs in (tagName, attrs) }), closeBracket)
+          }))
+}
+
+func testEmptyHtmlTag() {
+  print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>"))
+}
 
 func pairsToDict<A,B>(_ pairs: [(A,B)]) -> [A:B] {
   var dict: [A:B] = [:]
