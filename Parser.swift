@@ -8,9 +8,7 @@ typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
 func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
   let leftAngle = char("<")
-  let rightAngle = char(">")
-  
-  return sequence(leftAngle, fmap(word(), { tagName in (tagName, [:]) }))
+  return sequence(leftAngle, fmap(letters(), { tagName in (tagName, [:]) }))
 }
 
 /* func tagAttribute() -> Parser<(String, String)> { */
@@ -32,6 +30,26 @@ func testEmptyHtmlTag() {
 /* **************** *
  * PARSER INSTANCES *
  * **************** */ 
+
+func letters() -> Parser<String> {
+  return asString(many(letter()))
+}
+
+func letter() -> Parser<Character> {
+  return satisfy({ char in char.isLetter })
+}
+
+func nonSpace() -> Parser<Character> {
+  return satisfy({ char in !char.isWhitespace })
+}
+
+func char(_ char: Character) -> Parser<Character> {
+  return satisfy({ c in c == char })
+}
+
+func asString(_ parser: @escaping Parser<[Character]>) -> Parser<String> {
+  return fmap(parser, charsToString)
+}
 
 func testWord() {
   print(word()("hello world")) // ("hello", "world")
@@ -127,14 +145,6 @@ func sequence<A,B>(_ parser1: @escaping Parser<A>, _ parser2: @escaping Parser<B
       return nil
     }
   }
-}
-
-func nonSpace() -> Parser<Character> {
-  return satisfy({ char in !char.isWhitespace })
-}
-
-func char(_ char: Character) -> Parser<Character> {
-  return satisfy({ c in c == char })
 }
 
 func satisfy(_ predicate: @escaping ((Character) -> Bool)) -> Parser<Character> {
