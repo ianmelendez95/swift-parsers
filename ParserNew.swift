@@ -1,3 +1,36 @@
+
+typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
+
+let emptyHtmlTag: Parser<EmptyHtmlTag> = {
+  let openBracket = Parsers.char("<")
+  let attributes: Parser<[String: String]> = 
+    tagAttribute.token().many().map({ attributes in pairsToDict(attributes) })
+  let closeBracket = Parsers.char("/").then(Parsers.char(">"))
+
+  let tagName = Parsers.letters().token()
+
+  return openBracket
+          .then(tagName.flatMap({ tagName in 
+            attributes.precedes(closeBracket).map({ attrs in (tagName, attrs) })
+          }))
+}()
+
+func testEmptyHtmlTag() {
+  print(emptyHtmlTag.parse("<input type=\"text\" value=\"hello world!\"/>"))
+}
+
+func pairsToDict<A,B>(_ pairs: [(A,B)]) -> [A:B] {
+  var dict: [A:B] = [:]
+  for (key, value) in pairs {
+    dict[key] = value
+  }
+  return dict
+}
+
+func testPairsToDict() {
+  print(pairsToDict([("x", 1), ("y", 2)]))
+}
+
 let tagAttribute: Parser<(String, String)> = {
   let key = Parsers.letters().token()
 
