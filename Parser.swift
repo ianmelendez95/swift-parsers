@@ -11,25 +11,46 @@ func emptyHtmlTag() -> Parser<EmptyHtmlTag> {
   return sequence(leftAngle, fmap(letters(), { tagName in (tagName, [:]) }))
 }
 
-/* func tagAttribute() -> Parser<(String, String)> { */
-/*   let key = fmap(many(satisfy({ c in c != "=" })), charsToString) */
-/*   let equals = char("=") */
-/*   let value = quoted(word()) */ 
-
-/*   return { input in (("not", "impl"), "stop") } */
-/* } */
-
-/* func quoted<A>(_ parser: Parser<A>) -> Parser<A> { */
-/*   return sequence(char("\""), ) */
-/* } */
-
 func testEmptyHtmlTag() {
   print(emptyHtmlTag()("<input type=\"text\" value=\"hello world!\"/>"))
+}
+
+// TODO - handle escaped quotes
+func tagAttribute() -> Parser<(String, String)> {
+  let key = token(letters())
+
+  let equals = char("=")
+
+  let valueContent = asString(many(satisfy({ c in c != "\"" })))
+  let value = quoted(valueContent)
+
+  return 
+    bind(key, { keyStr in
+      sequence(equals, 
+        fmap(value, { valueStr in (keyStr, valueStr) }))
+    })
+}
+
+func testTagAttribute() { 
+  print(tagAttribute()("type=\"text\""))
 }
 
 /* **************** *
  * PARSER INSTANCES *
  * **************** */ 
+
+func token<A>(_ parser: @escaping Parser<A>) -> Parser<A> {
+  return keepFirst(parser, spaces())
+}
+
+func quoted<A>(_ parser: @escaping Parser<A>) -> Parser<A> {
+  let quote = char("\"")
+  return sequence(quote, keepFirst(parser, quote))
+}
+
+func testQuoted() {
+  print(quoted(letters())("\"quotedstuff\""))
+}
 
 func letters() -> Parser<String> {
   return asString(many(letter()))
@@ -39,12 +60,24 @@ func letter() -> Parser<Character> {
   return satisfy({ char in char.isLetter })
 }
 
+func spaces() -> Parser<Void> {
+  return sequence(many(space()), nullParser())
+}
+
 func nonSpace() -> Parser<Character> {
   return satisfy({ char in !char.isWhitespace })
 }
 
+func space() -> Parser<Character> {
+  return satisfy({ char in char.isWhitespace })
+}
+
 func char(_ char: Character) -> Parser<Character> {
   return satisfy({ c in c == char })
+}
+
+func nullParser() -> Parser<Void> {
+  return { input in ((), input) }
 }
 
 func asString(_ parser: @escaping Parser<[Character]>) -> Parser<String> {
