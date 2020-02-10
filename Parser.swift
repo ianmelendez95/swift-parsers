@@ -10,7 +10,11 @@ class Parser<A> {
   }
 
   func surroundedBy<B>(_ bound: Parser<B>) -> Parser<A> {
-    return bound.then(self).precedes(bound)
+    return self.between(bound, bound)
+  }
+
+  func between<B,C>(_ bra: Parser<B>, _ ket: Parser<C>) -> Parser<A> {
+    return bra.then(self).precedes(ket)
   }
 
   func token() -> Parser<A> {
