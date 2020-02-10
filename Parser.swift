@@ -1,137 +1,124 @@
+class HtmlParserExample {
+  typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
-typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
+  static let emptyHtmlTag: Parser<EmptyHtmlTag> = {
+    let openBracket = Parsers.char("<")
+    let attributes: Parser<[String: String]> = 
+      tagAttribute.token().many().map({ attributes in pairsToDict(attributes) })
+    let closeBracket = Parsers.char("/").then(Parsers.char(">"))
 
-let emptyHtmlTag: Parser<EmptyHtmlTag> = {
-  let openBracket = Parsers.char("<")
-  let attributes: Parser<[String: String]> = 
-    tagAttribute.token().many().map({ attributes in pairsToDict(attributes) })
-  let closeBracket = Parsers.char("/").then(Parsers.char(">"))
+    let tagName = Parsers.letters().token()
 
-  let tagName = Parsers.letters().token()
+    return openBracket
+            .then(tagName.flatMap({ tagName in 
+              attributes.precedes(closeBracket).map({ attrs in (tagName, attrs) })
+            }))
+  }()
 
-  return openBracket
-          .then(tagName.flatMap({ tagName in 
-            attributes.precedes(closeBracket).map({ attrs in (tagName, attrs) })
-          }))
-}()
-
-func testEmptyHtmlTag() {
-  print(emptyHtmlTag.parse("<input type=\"text\" value=\"hello world!\"/>"))
-}
-
-func pairsToDict<A,B>(_ pairs: [(A,B)]) -> [A:B] {
-  var dict: [A:B] = [:]
-  for (key, value) in pairs {
-    dict[key] = value
+  static func testEmptyHtmlTag() {
+    print(emptyHtmlTag.parse("<input type=\"text\" value=\"hello world!\"/>"))
   }
-  return dict
+
+  static func pairsToDict<A,B>(_ pairs: [(A,B)]) -> [A:B] {
+    var dict: [A:B] = [:]
+    for (key, value) in pairs {
+      dict[key] = value
+    }
+    return dict
+  }
+
+  static func testPairsToDict() {
+    print(pairsToDict([("x", 1), ("y", 2)]))
+  }
+
+  static let tagAttribute: Parser<(String, String)> = {
+    let key = Parsers.letters().token()
+
+    let equals = Parsers.char("=")
+    
+    let valueContent = 
+      Parsers.asString(Parsers.satisfy({ c in c != "\"" }).many())
+    let value = valueContent.surroundedBy(Parsers.char("\""))
+
+    return key.flatMap({ keyStr in 
+              equals.then(value.map({ valueStr in (keyStr, valueStr) }))
+            })
+  }()
+
+  static func testTagAttribute() { 
+    print(tagAttribute.parse("type=\"text\""))
+  }
 }
-
-func testPairsToDict() {
-  print(pairsToDict([("x", 1), ("y", 2)]))
-}
-
-let tagAttribute: Parser<(String, String)> = {
-  let key = Parsers.letters().token()
-
-  let equals = Parsers.char("=")
-  
-  let valueContent = 
-    Parsers.asString(Parsers.satisfy({ c in c != "\"" }).many())
-  let value = valueContent.quoted()
-
-  return key.flatMap({ keyStr in 
-            equals.then(value.map({ valueStr in (keyStr, valueStr) }))
-          })
-}()
-
-func testTagAttribute() { 
-  print(tagAttribute.parse("type=\"text\""))
-}
-
-typealias ParserFunction<A> = ((String) -> (A, String)?)
 
 class Parser<A> {
-  let parseFunc: ParserFunction<A>
+  let parseFunc: ((String) -> ParseResult<A>)
 
-  init(_ parseFunc: @escaping ParserFunction<A>) {
+  init(_ parseFunc: @escaping ((String) -> ParseResult<A>)) {
     self.parseFunc = parseFunc
   }
 
-  func parse(_ input: String) -> (A, String)? {
+  func parse(_ input: String) -> ParseResult<A> {
     return self.parseFunc(input)
   }
 
-  func quoted() -> Parser<A> {
-    let quote = Parsers.char("\"")
-    return quote.then(self).precedes(quote)
-  }
-
-  func then<B>(_ parser: Parser<B>) -> Parser<B> {
-    return Parser<B>({ input in
-      if let (_, rest1) = self.parse(input) {
-        return parser.parse(rest1)
-      } else {
-        return nil
-      }
-    })
+  func surroundedBy<B>(_ bound: Parser<B>) -> Parser<A> {
+    return bound.then(self).precedes(bound)
   }
 
   func token() -> Parser<A> {
     return self.precedes(Parsers.spaces())
   }
 
-  func precedes<B>(_ follows: Parser<B>) -> Parser<A> {
-    return Parser({ input in 
-      if let (result1, rest1) = self.parse(input) {
-        if let (_, rest2) = follows.parse(rest1) {
-          return (result1, rest2)
-        }
-      }
+  func then<B>(_ parser: Parser<B>) -> Parser<B> {
+    return Parser<B>({ input in
+      self.parse(input).flatMapSuccess({ _, restOfInput in 
+        parser.parse(restOfInput)
+      })
+    })
+  }
 
-      return nil
+  func precedes<B>(_ follows: Parser<B>) -> Parser<A> {
+    return Parser<A>({ input in 
+      self.parse(input).flatMapSuccess({ value, restOfInput in 
+        follows.parse(restOfInput).mapValue({ _ in value })
+      })
     })
   }
 
   func map<B>(_ mapFunc: @escaping ((A) -> B)) -> Parser<B> {
     return Parser<B>({ input in
-      if let (result, rest) = self.parse(input) {
-        return (mapFunc(result), rest)
-      } else {
-        return nil
-      }
+      self.parse(input).mapValue(mapFunc)
     })
   }
 
   func flatMap<B>(_ boundParserFunc: @escaping ((A) -> Parser<B>)) -> Parser<B> {
     return Parser<B>({ input in 
-      if let (result, rest) = self.parse(input) {
-        return boundParserFunc(result).parse(rest)
-      } else {
-        return nil
-      }
+      self.parse(input).flatMapSuccess({ value, restOfInput in
+        boundParserFunc(value).parse(restOfInput)
+      })
     })
   }
 
-  func many() -> Parser<[A]> {
+  func many() -> Parser<[A]> { 
     return Parser<[A]>({ input in
-      var result: [A] = [] 
-      var curInput = input
-      while let (nextResult, nextInput) = self.parse(curInput) {
-        result.append(nextResult)
-        curInput = nextInput
-      }
-
-      return (result, curInput)
+      self.parse(input)
+          .flatMapEither(
+            { value, restOfInput in 
+               self.many().parse(restOfInput)
+                          .mapValue({ values in Parser.cons(value, values) })
+            }, 
+            { _ in .Success([], input) })
     })
+  }
+
+  static func cons<A>(_ elem: A, _ arr: [A]) -> [A] {
+    var newArr = arr
+    newArr.insert(elem, at: 0)
+    return newArr
   }
 }
 
 class Parsers {
-  static func asString(_ parser: Parser<[Character]>) -> Parser<String> {
-    return parser.map(charsToString)
-  }
-
   static func spaces() -> Parser<Void> {
     return space().many().then(null())
   }
@@ -153,20 +140,36 @@ class Parsers {
   }
 
   static func satisfy(_ predicate: @escaping ((Character) -> Bool)) 
-                     -> Parser<Character> {
+                      -> Parser<Character> {
     return Parser({ input in
       if let first = strHead(input) {
         if (predicate(first)) {
-          return (first, strTail(input))
+          return .Success(first, strTail(input))
         }
       }
 
-      return nil
+      return .Failure(genFailureMessage(input))
     })
   }
 
   static func null() -> Parser<Void> {
-    return Parser({ input in ((), input) })
+    return Parser({ input in .Success((), input) })
+  }
+
+  static func asString(_ parser: Parser<[Character]>) -> Parser<String> {
+    return parser.map(charsToString)
+  }
+
+  static func genFailureMessage(_ input: String) -> String {
+    if strNull(input) {
+      return "Exhausted input"
+    } else {
+      return "Failed at char '" 
+              + String(strHead(input)!)
+              + "' in \"" 
+              + strTail(input)
+              + "\""
+    }
   }
 
   static func strNull(_ str: String) -> Bool {
@@ -183,5 +186,32 @@ class Parsers {
 
   static func charsToString(_ chars: [Character]) -> String {
     return String(chars)
+  }
+}
+
+enum ParseResult<A> {
+  case Success(A, String)
+  case Failure(String)
+
+  func mapValue<B>(_ mapFunc: ((A) -> B)) -> ParseResult<B> {
+    return flatMapSuccess({ value, restOfInput in 
+      .Success(mapFunc(value), restOfInput) 
+    })
+  }
+
+  func flatMapSuccess<B>(_ successMap: ((A, String) -> ParseResult<B>)) 
+                         -> ParseResult<B> {
+    return flatMapEither(successMap, { msg in .Failure(msg) })
+  }
+
+  func flatMapEither<B>(_ successMap: ((A, String) -> ParseResult<B>),
+                        _ failureMap: ((String) -> ParseResult<B>)) 
+                        -> ParseResult<B> {
+    switch self {
+      case .Success(let value, let restOfInput):
+        return successMap(value, restOfInput)
+      case .Failure(let msg):
+        return failureMap(msg)
+    }
   }
 }
