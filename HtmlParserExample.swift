@@ -8,15 +8,16 @@ class HtmlParserExample {
   static let emptyHtmlTag: Parser<EmptyHtmlTag> = {
     let openBracket = Parsers.char("<")
     let attributes: Parser<[String: String]> = 
-      tagAttribute.token().many().map({ attributes in pairsToDict(attributes) })
+      tagAttribute.token().many().map(pairsToDict)
     let closeBracket = Parsers.char("/").then(Parsers.char(">"))
 
     let tagName = Parsers.letters().token()
 
-    return openBracket
-            .then(tagName.flatMap({ tagName in 
-              attributes.precedes(closeBracket).map({ attrs in (tagName, attrs) })
-            }))
+    let tagContent = 
+      tagName.flatMap({ tagName in 
+        attributes.map({ attrs in (tagName, attrs) }) })
+
+    return tagContent.between(openBracket, closeBracket)
   }()
 
   static let tagAttribute: Parser<(String, String)> = {
