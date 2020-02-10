@@ -71,6 +71,13 @@ class Parser<A> {
 }
 
 class Parsers {
+  static func string(_ str: String) -> Parser<String> {
+    return Parser<String>({ input in 
+      return input.hasPrefix(str) ? .Success(str, strDrop(input, str.count))
+                                  : .Failure(genFailureMessage(input))
+    })
+  }
+
   static func spaces() -> Parser<Void> {
     return space().many().then(null())
   }
@@ -135,6 +142,10 @@ class Parsers {
 
   static func strTake(_ str: String, _ num: Int) -> String {
     return String(str.prefix(num))
+  }
+
+  static func strDrop(_ str: String, _ num: Int) -> String {
+    return String(str.dropFirst(num))
   }
 
   static func charsToString(_ chars: [Character]) -> String {

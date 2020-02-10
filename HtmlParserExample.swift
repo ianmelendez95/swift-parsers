@@ -9,7 +9,7 @@ class HtmlParserExample {
     let openBracket = Parsers.char("<").token()
     let attributes: Parser<[String: String]> = 
       tagAttribute.token().many().map(pairsToDict)
-    let closeBracket = Parsers.char("/").then(Parsers.char(">")).token()
+    let closeBracket = Parsers.string("/>").token()
 
     let tagName = Parsers.letters().token()
 
