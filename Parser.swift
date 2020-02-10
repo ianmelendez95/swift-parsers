@@ -164,11 +164,7 @@ class Parsers {
     if strNull(input) {
       return "Exhausted input"
     } else {
-      return "Failed at char '" 
-              + String(strHead(input)!)
-              + "' in \"" 
-              + strTail(input)
-              + "\""
+      return "Failed at char '\(String(strHead(input)!))' in \"\(strTake(input, 20))\""
     }
   }
 
@@ -182,6 +178,10 @@ class Parsers {
 
   static func strTail(_ str: String) -> String {
     return String(str.dropFirst(1))
+  }
+
+  static func strTake(_ str: String, _ num: Int) -> String {
+    return String(str.prefix(num))
   }
 
   static func charsToString(_ chars: [Character]) -> String {
