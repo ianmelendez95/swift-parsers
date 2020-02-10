@@ -45,10 +45,63 @@ class Parser<A> {
           .flatMapEither(
             { value, restOfInput in 
                self.many().parse(restOfInput)
-                          .mapValue({ values in cons(value, values) })
+                          .mapValue({ values in Parser.cons(value, values) })
             }, 
             { _ in .Success([], input) })
     })
+  }
+
+  static func cons<A>(_ elem: A, _ arr: [A]) -> [A] {
+    var newArr = arr
+    newArr.insert(elem, at: 0)
+    return newArr
+  }
+}
+
+class Parsers {
+  static func char(_ char: Character) -> Parser<Character> {
+    return satisfy({ c in c == char })
+  }
+
+  static func satisfy(_ predicate: @escaping ((Character) -> Bool)) 
+                      -> Parser<Character> {
+    return Parser({ input in
+      if let first = strHead(input) {
+        if (predicate(first)) {
+          return .Success(first, strTail(input))
+        }
+      }
+
+      return .Failure(genFailureMessage(input))
+    })
+  }
+
+  static func genFailureMessage(_ input: String) -> String {
+    if strNull(input) {
+      return "Exhausted input"
+    } else {
+      return "Failed at char '" 
+              + String(strHead(input)!)
+              + "' in \"" 
+              + strTail(input)
+              + "\""
+    }
+  }
+
+  static func strNull(_ str: String) -> Bool {
+    return str.count == 0
+  }
+
+  static func strHead(_ str: String) -> Character? {
+    return str.first
+  }
+
+  static func strTail(_ str: String) -> String {
+    return String(str.dropFirst(1))
+  }
+
+  static func charsToString(_ chars: [Character]) -> String {
+    return String(chars)
   }
 }
 
@@ -75,8 +128,6 @@ enum ParseResult<A> {
         return successMap(value, restOfInput)
       case .Failure(let msg):
         return failureMap(msg)
-      default:
-        preconditionFailure("Unhandled enum: " + String(describing: self))
     }
   }
 }
