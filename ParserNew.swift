@@ -38,30 +38,43 @@ class Parser<A> {
       })
     })
   }
+
+  func many() -> Parser<[A]> { 
+    return Parser<[A]>({ input in
+      self.parse(input)
+          .flatMapEither(
+            { value, restOfInput in 
+               self.many().parse(restOfInput)
+                          .mapValue({ values in cons(value, values) })
+            }, 
+            { _ in .Success([], input) })
+    })
+  }
 }
 
 enum ParseResult<A> {
   case Success(A, String)
   case Failure(String)
 
+  func mapValue<B>(_ mapFunc: ((A) -> B)) -> ParseResult<B> {
+    return flatMapSuccess({ value, restOfInput in 
+      .Success(mapFunc(value), restOfInput) 
+    })
+  }
+
   func flatMapSuccess<B>(_ successMap: ((A, String) -> ParseResult<B>)) 
-                     -> ParseResult<B> {
+                         -> ParseResult<B> {
+    return flatMapEither(successMap, { msg in .Failure(msg) })
+  }
+
+  func flatMapEither<B>(_ successMap: ((A, String) -> ParseResult<B>),
+                        _ failureMap: ((String) -> ParseResult<B>)) 
+                        -> ParseResult<B> {
     switch self {
       case .Success(let value, let restOfInput):
         return successMap(value, restOfInput)
       case .Failure(let msg):
-        return .Failure(msg)
-      default:
-        preconditionFailure("Unhandled enum: " + String(describing: self))
-    }
-  }
-
-  func mapValue<B>(_ mapFunc: ((A) -> B)) -> ParseResult<B> {
-    switch self {
-      case .Success(let value, let rest): 
-        return .Success(mapFunc(value), rest)
-      case .Failure(let msg):
-        return .Failure(msg)
+        return failureMap(msg)
       default:
         preconditionFailure("Unhandled enum: " + String(describing: self))
     }
