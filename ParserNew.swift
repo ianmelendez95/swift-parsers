@@ -59,6 +59,22 @@ class Parser<A> {
 }
 
 class Parsers {
+  static func spaces() -> Parser<Void> {
+    return space().many().then(null())
+  }
+
+  static func space() -> Parser<Character> {
+    return satisfy({ c in c.isWhitespace })
+  }
+
+  static func letters() -> Parser<String> {
+    return asString(letter().many())
+  }
+
+  static func letter() -> Parser<Character> {
+    return satisfy({ c in c.isLetter })
+  }
+
   static func char(_ char: Character) -> Parser<Character> {
     return satisfy({ c in c == char })
   }
@@ -74,6 +90,14 @@ class Parsers {
 
       return .Failure(genFailureMessage(input))
     })
+  }
+
+  static func null() -> Parser<Void> {
+    return Parser({ input in .Success((), input) })
+  }
+
+  static func asString(_ parser: Parser<[Character]>) -> Parser<String> {
+    return parser.map(charsToString)
   }
 
   static func genFailureMessage(_ input: String) -> String {
