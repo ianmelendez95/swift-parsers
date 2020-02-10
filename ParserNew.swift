@@ -9,6 +9,10 @@ class Parser<A> {
     return self.parseFunc(input)
   }
 
+  func surroundedBy<B>(_ bound: Parser<B>) -> Parser<A> {
+    return bound.then(self).precedes(bound)
+  }
+
   func then<B>(_ parser: Parser<B>) -> Parser<B> {
     return Parser<B>({ input in
       self.parse(input).flatMapSuccess({ _, restOfInput in 
