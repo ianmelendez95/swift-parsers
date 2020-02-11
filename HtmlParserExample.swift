@@ -23,15 +23,11 @@ class HtmlParserExample {
 
   static let tagAttribute: Parser<(String, String)> = {
     let key = Parsers.letters().token()
-
     let equals = Parsers.char("=")
     
-    let valueContent = 
-      Parsers.asString(Parsers.satisfy({ c in c != "\"" }).many())
-    let value = valueContent.surroundedBy(Parsers.char("\""))
-
     return key.flatMap({ keyStr in 
-              equals.then(value.map({ valueStr in (keyStr, valueStr) }))
+              equals.then(Parsers.stringLiteral()
+                                 .map({ valueStr in (keyStr, valueStr) }))
             }).name("tag attribute")
   }()
 

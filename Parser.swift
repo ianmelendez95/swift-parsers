@@ -78,6 +78,15 @@ class Parser<A> {
 }
 
 class Parsers {
+  static func stringLiteral() -> Parser<String> {
+    let escapedQuotes = Parsers.string("\\\"")
+    let nonQuote = Parsers.satisfy({ c in c != "\"" }).map(charToString)
+    let content = 
+      Parsers.alternate(escapedQuotes, nonQuote).many().map(strConcat)
+
+    return content.surroundedBy(Parsers.char("\""))
+  }
+
   static func alternate<A>(_ parser1: Parser<A>, _ parser2: Parser<A>) 
                           -> Parser<A> {
     return Parser<A>({ input in
@@ -161,6 +170,18 @@ class Parsers {
 
   static func strDrop(_ str: String, _ num: Int) -> String {
     return String(str.dropFirst(num))
+  }
+
+  static func strConcat(_ strs: [String]) -> String {
+    var curStr = ""
+    for str in strs {
+      curStr = curStr + str
+    }
+    return curStr
+  }
+
+  static func charToString(_ char: Character) -> String {
+    return String(char)
   }
 
   static func charsToString(_ chars: [Character]) -> String {
