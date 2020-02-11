@@ -87,6 +87,12 @@ class Parsers {
     return content.surroundedBy(Parsers.char("\""))
   }
 
+  static func natural() -> Parser<Int> {
+    return Parsers.digit().many()
+                  .map(charsToString)
+                  .map({ numStr in Int(numStr)! })
+  }
+
   static func alternate<A>(_ parser1: Parser<A>, _ parser2: Parser<A>) 
                           -> Parser<A> {
     return Parser<A>({ input in
@@ -116,6 +122,10 @@ class Parsers {
 
   static func letter() -> Parser<Character> {
     return satisfy({ c in c.isLetter })
+  }
+
+  static func digit() -> Parser<Character> { 
+    return satisfy({ c in c.isNumber })
   }
 
   static func char(_ char: Character) -> Parser<Character> {
