@@ -5,6 +5,13 @@ class Parser<A> {
     self.parseFunc = parseFunc
   }
 
+  func name(_ message: String) -> Parser<A> {
+    return Parser({ input in
+      return self.parse(message)
+                 .mapFailure({ msg in message + " >> " + msg })
+    })
+  }
+
   func parse(_ input: String) -> ParseResult<A> {
     return self.parseFunc(input)
   }
@@ -161,6 +168,12 @@ enum ParseResult<A> {
     return flatMapSuccess({ value, restOfInput in 
       .Success(mapFunc(value), restOfInput) 
     })
+  }
+
+  func mapFailure(_ failureFunc: ((String) -> String)) -> ParseResult<A> {
+    return flatMapEither(
+      { value, restOfInput in .Success(value, restOfInput) },
+      { failureMsg in .Failure(failureFunc(failureMsg)) })
   }
 
   func flatMapSuccess<B>(_ successMap: ((A, String) -> ParseResult<B>)) 

@@ -2,22 +2,23 @@ class HtmlParserExample {
   typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
   static func testEmptyHtmlTag() {
-    print(emptyHtmlTag.parse("<input type=\"text\" value=\"hello world!\"/>"))
+    print(emptyHtmlTag.parse("<input type=\"text\" value=\"hello world\"/>"))
   }
 
   static let emptyHtmlTag: Parser<EmptyHtmlTag> = {
-    let openBracket = Parsers.char("<").token()
+    let openBracket = Parsers.char("<").token().name("open bracket")
     let attributes: Parser<[String: String]> = 
       tagAttribute.token().many().map(pairsToDict)
-    let closeBracket = Parsers.string("/>").token()
+    let closeBracket = Parsers.string("/>").token().name("close bracket")
 
-    let tagName = Parsers.letters().token()
+    let tagName = Parsers.letters().token().name("tag name")
 
     let tagContent = 
       tagName.flatMap({ tagName in 
         attributes.map({ attrs in (tagName, attrs) }) }).token()
 
     return tagContent.between(openBracket, closeBracket)
+                     .name("empty html tag")
   }()
 
   static let tagAttribute: Parser<(String, String)> = {
@@ -31,7 +32,7 @@ class HtmlParserExample {
 
     return key.flatMap({ keyStr in 
               equals.then(value.map({ valueStr in (keyStr, valueStr) }))
-            })
+            }).name("tag attribute")
   }()
 
   static func testTagAttribute() { 
