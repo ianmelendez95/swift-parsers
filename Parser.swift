@@ -7,7 +7,7 @@ class Parser<A> {
 
   func name(_ message: String) -> Parser<A> {
     return Parser({ input in
-      return self.parse(message)
+      return self.parse(input)
                  .mapFailure({ msg in message + " >> " + msg })
     })
   }
@@ -78,6 +78,14 @@ class Parser<A> {
 }
 
 class Parsers {
+  static func alternate<A>(_ parser1: Parser<A>, _ parser2: Parser<A>) 
+                          -> Parser<A> {
+    return Parser<A>({ input in
+      return parser1.parse(input)
+                    .flatMapFailure({ _ in parser2.parse(input) })
+    })
+  }
+
   static func string(_ str: String) -> Parser<String> {
     return Parser<String>({ input in 
       return input.hasPrefix(str) ? .Success(str, strDrop(input, str.count))
@@ -171,14 +179,19 @@ enum ParseResult<A> {
   }
 
   func mapFailure(_ failureFunc: ((String) -> String)) -> ParseResult<A> {
-    return flatMapEither(
-      { value, restOfInput in .Success(value, restOfInput) },
-      { failureMsg in .Failure(failureFunc(failureMsg)) })
+    return flatMapFailure({ msg in .Failure(failureFunc(msg)) })
   }
 
   func flatMapSuccess<B>(_ successMap: ((A, String) -> ParseResult<B>)) 
                          -> ParseResult<B> {
     return flatMapEither(successMap, { msg in .Failure(msg) })
+  }
+
+  func flatMapFailure(_ failureMap: ((String) -> ParseResult<A>)) 
+                     -> ParseResult<A> {
+    return flatMapEither(
+      { value, restOfInput in .Success(value, restOfInput) },
+      { failureMsg in failureMap(failureMsg) })
   }
 
   func flatMapEither<B>(_ successMap: ((A, String) -> ParseResult<B>),
