@@ -25,7 +25,7 @@ class Parser<A> {
   }
 
   func token() -> Parser<A> {
-    return self.precedes(Parsers.spaces())
+    return self.skipOptional(Parsers.spaces())
   }
 
   func then<B>(_ parser: Parser<B>) -> Parser<B> {
@@ -34,6 +34,15 @@ class Parser<A> {
         parser.parse(restOfInput)
       })
     })
+  }
+
+  func skipOptional<B>(_ parser: Parser<B>) -> Parser<A> {
+    return self.precedes(Parsers.alternate(parser.void(), 
+                                           Parsers.null()))
+  }
+
+  func void() -> Parser<Void> {
+    return self.then(Parsers.null())
   }
 
   func precedes<B>(_ follows: Parser<B>) -> Parser<A> {

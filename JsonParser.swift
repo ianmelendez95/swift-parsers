@@ -7,19 +7,20 @@ enum Json {
 }
 
 func testJsonParser() {
-  /* let input = """ */
-  /*   { \"hello\": \"world\" */
-  /*   , \"answer\": 42 */
-  /*   , \"question\": [\"tell\", \"you\", \"later\"] */
-  /*   , */
-  /*   } */
-  /*   """ */
+  let input = """
+    { \"hello\": \"world\"
+    , \"answer\": 42
+    , \"question\": [ \"I\", \"would\", \"walk\", 500, \"miles\" ]
+    , \"from\": { \"me\": \"you\" }
+    }
+    """
   print("number", JsonParsers.jsonParser().parse("42"))
   print("string", JsonParsers.jsonParser().parse("\"question\""))
   print("boolean", JsonParsers.jsonParser().parse("true"))
   print("array", JsonParsers.jsonParser().parse("[1,2,]"))
   print("object", JsonParsers.jsonParser().parse("{\"walk\": 500,}"))
-  /* print(Parsers.spaces().then(JsonParsers.jsonParser()).parse(input)) */
+  print("object2", JsonParsers.jsonParser().parse("{\"walk\": 500,\"run\":100}"))
+  print(Parsers.spaces().then(JsonParsers.jsonParser()).parse(input))
 }
 
 class JsonParsers {
@@ -58,8 +59,8 @@ class JsonParsers {
   static func arrayParser() -> Parser<Json> {
     let arrayContent: Parser<[Json]> = 
       JsonParsers.jsonParser().token()
-                 .precedes(Parsers.char(",").token()).many()
-    return arrayContent.between(Parsers.char("["), Parsers.char("]"))
+                 .skipOptional(Parsers.char(",").token()).many()
+    return arrayContent.between(Parsers.char("[").token(), Parsers.char("]"))
                        .map({ items in Json.Array(items) })
   }
 
@@ -69,13 +70,13 @@ class JsonParsers {
 
       return key.flatMap({ keyStr in 
         Parsers.char(":").token()
-                         .then(JsonParsers.jsonParser())
-                         .precedes(Parsers.char(",").token())
+                         .then(JsonParsers.jsonParser().token())
+                         .skipOptional(Parsers.char(","))
                          .map({ jsonValue in (keyStr, jsonValue) })
       })
     }()
 
-    return valuePair.token().many().between(Parsers.char("{"), 
+    return valuePair.token().many().between(Parsers.char("{").token(), 
                                             Parsers.char("}"))
                     .map({ pairs in Json.Object(pairs) })
   }
