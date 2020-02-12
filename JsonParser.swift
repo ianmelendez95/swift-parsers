@@ -24,60 +24,60 @@ func testJsonParser() {
 }
 
 class JsonParsers {
-  static var jsonParserInstance: Parser<Json>? =  nil 
+  static var jsonParserInstance: Parser<Json>? = nil
 
   static func jsonParser() -> Parser<Json> {
     if let parser = jsonParserInstance {
       return parser
-    } else {
-      let parser = Parsers.choice(
-        [ JsonParsers.numberParser.token()
-        , JsonParsers.stringParser.token()
-        , JsonParsers.booleanParser.token()
-        , Parsers.delayed({ JsonParsers.arrayParser().token() })
-        , Parsers.delayed({ JsonParsers.objectParser().token() })
-        ])
-      jsonParserInstance = parser
-      return parser
     }
-  }
 
-  static let numberParser: Parser<Json> = {
-    return Parsers.natural().map({ num in Json.Number(num) })
-  }()
-
-  static let stringParser: Parser<Json> = {
-    return Parsers.stringLiteral().map({ strContent in Json.String(strContent) })
-  }()
-
-  static let booleanParser: Parser<Json> = {
-    let trueParser = Parsers.string("true").map({ _ in Json.Boolean(true) })
-    let falseParser = Parsers.string("false").map({ _ in Json.Boolean(false) })
-    return Parsers.alternate(trueParser, falseParser)
-  }()
-
-  static func arrayParser() -> Parser<Json> {
-    let arrayContent: Parser<[Json]> = 
-      JsonParsers.jsonParser().token()
-                 .skipOptional(Parsers.char(",").token()).many()
-    return arrayContent.between(Parsers.char("[").token(), Parsers.char("]"))
-                       .map({ items in Json.Array(items) })
-  }
-
-  static func objectParser() -> Parser<Json> {
-    let valuePair: Parser<(String, Json)> = {
-      let key: Parser<String> = Parsers.stringLiteral()
-
-      return key.flatMap({ keyStr in 
-        Parsers.char(":").token()
-                         .then(JsonParsers.jsonParser().token())
-                         .skipOptional(Parsers.char(","))
-                         .map({ jsonValue in (keyStr, jsonValue) })
-      })
+    let numberParser: Parser<Json> = {
+      return Parsers.natural().map({ num in Json.Number(num) })
     }()
 
-    return valuePair.token().many().between(Parsers.char("{").token(), 
-                                            Parsers.char("}"))
-                    .map({ pairs in Json.Object(pairs) })
+    let stringParser: Parser<Json> = {
+      return Parsers.stringLiteral().map({ strContent in Json.String(strContent) })
+    }()
+
+    let booleanParser: Parser<Json> = {
+      let trueParser = Parsers.string("true").map({ _ in Json.Boolean(true) })
+      let falseParser = Parsers.string("false").map({ _ in Json.Boolean(false) })
+      return Parsers.alternate(trueParser, falseParser)
+    }()
+
+    func arrayParser() -> Parser<Json> {
+      let arrayContent: Parser<[Json]> = 
+        JsonParsers.jsonParser().token()
+                   .skipOptional(Parsers.char(",").token()).many()
+      return arrayContent.between(Parsers.char("[").token(), Parsers.char("]"))
+                         .map({ items in Json.Array(items) })
+    }
+
+    func objectParser() -> Parser<Json> {
+      let valuePair: Parser<(String, Json)> = {
+        let key: Parser<String> = Parsers.stringLiteral()
+
+        return key.flatMap({ keyStr in 
+          Parsers.char(":").token()
+                           .then(JsonParsers.jsonParser().token())
+                           .skipOptional(Parsers.char(","))
+                           .map({ jsonValue in (keyStr, jsonValue) })
+        })
+      }()
+
+      return valuePair.token().many().between(Parsers.char("{").token(), 
+                                              Parsers.char("}"))
+                      .map({ pairs in Json.Object(pairs) })
+    }
+
+    let parser = Parsers.choice(
+      [ numberParser.token()
+      , stringParser.token()
+      , booleanParser.token()
+      , Parsers.delayed({ arrayParser().token() })
+      , Parsers.delayed({ objectParser().token() })
+      ])
+    jsonParserInstance = parser
+    return parser
   }
 }
