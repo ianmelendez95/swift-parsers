@@ -24,7 +24,7 @@ func testJsonParser() {
 }
 
 class JsonParsers {
-  static var jsonParserInstance: Parser<Json>? = nil
+  private static var jsonParserInstance: Parser<Json>? = nil
 
   static func jsonParser() -> Parser<Json> {
     if let parser = jsonParserInstance {
