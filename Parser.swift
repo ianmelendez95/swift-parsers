@@ -5,6 +5,10 @@ class Parser<A> {
     self.parseFunc = parseFunc
   }
 
+  /**
+   * Manifests a name for the parser, primarily 
+   * for the purpose of reporting parse failures
+   */
   func name(_ message: String) -> Parser<A> {
     return Parser({ input in
       return self.parse(input)
@@ -16,18 +20,50 @@ class Parser<A> {
     return self.parseFunc(input)
   }
 
+  /**
+   * Returns a new parser that returns the parse result of this
+   * parser of the contents within the provided bounds
+   * 
+   *    Parsers.char("a").surroundedBy(Parsers.char("^")) 
+   *
+   * will parse 'a' in "^a^"
+   */
   func surroundedBy<B>(_ bound: Parser<B>) -> Parser<A> {
     return self.between(bound, bound)
   }
 
+  /**
+   * Returns a new parser that returns the parse result of this
+   * parser of the contents within the provided bounds
+   * 
+   * e.g. Parsers.char("a").between(Parsers.char("<"), Parsers.char(">")) will parse 'a' in "<a>"
+   */
   func between<B,C>(_ bra: Parser<B>, _ ket: Parser<C>) -> Parser<A> {
     return bra.then(self).precedes(ket)
   }
 
+  /**
+   * Returns a new parser that returns the parse result of this
+   * parser, discarding any following whitespace   
+   * 
+   *     Parsers.char("a").token() 
+   *
+   * will parse 'a' in "a  b", and leave "b" as the 
+   * rest of the string
+   */
   func token() -> Parser<A> {
     return self.skipOptional(Parsers.spaces())
   }
 
+  /**
+   * Returns a new parser that parses according 
+   * to this parser, then the next parser, 
+   * returning the next parsers value
+   * 
+   *     Parsers.char("a").then(Parsers.char("b")) 
+   *
+   * will parse 'b' in "ab"   
+   */
   func then<B>(_ parser: Parser<B>) -> Parser<B> {
     return Parser<B>({ input in
       self.parse(input).flatMapSuccess({ _, restOfInput in 
@@ -36,15 +72,50 @@ class Parser<A> {
     })
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser, then optionally the next parser, 
+   * returning this parsers value
+   * 
+   *     Parsers.char("a").skipOptionally(parsers.char("b")) 
+   *
+   * will return 'a' in "abc", leaving "c" as the rest of the input
+   * to parse - this is also true for the input "ac"
+   * 
+   */
   func skipOptional<B>(_ parser: Parser<B>) -> Parser<A> {
     return self.precedes(Parsers.alternate(parser.void(), 
                                            Parsers.null()))
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser, discarding the value   
+   * 
+   *     Parsers.char("a").void() 
+   *
+   * will discard 'a' in "ab", returning (), leaving "b" 
+   * as the rest of the input to parse
+   * 
+   * this is primarily useful when the value of the 
+   * parsing is not desired, as different parsers
+   * of different value types can be coerced to void 
+   * and used with a combinator such as 'choice'
+   */
   func void() -> Parser<Void> {
     return self.then(Parsers.null())
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser, ensuring that the following
+   * parser succeeds, returning this value
+   * 
+   *     Parsers.char("a").precedes(Parsers.char("b")) 
+   *
+   * will return 'a' in "abc", leaving "c" 
+   * as the rest of the input to parse
+   */
   func precedes<B>(_ follows: Parser<B>) -> Parser<A> {
     return Parser<A>({ input in 
       self.parse(input).flatMapSuccess({ value, restOfInput in 
@@ -53,12 +124,35 @@ class Parser<A> {
     })
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser, with the value mapped according 
+   * to the provided function
+   * 
+   *     Parsers.char("h").map({ c in String(c) + "ello" }) 
+   *
+   * will return 'hello' in "h"
+   */
   func map<B>(_ mapFunc: @escaping ((A) -> B)) -> Parser<B> {
     return Parser<B>({ input in
       self.parse(input).mapValue(mapFunc)
     })
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser, and binds the value in the 
+   * provided function that returns another parser,
+   * which is then used to parse the rest of the input
+   * 
+   *     Parsers.natural().token().flatMap({ value1 in
+   *       return Parsers.natural().map({ value2 in  
+   *         return value1 + value2
+   *       })
+   *     }) 
+   *
+   * will return '123' in "100 23"
+   */
   func flatMap<B>(_ boundParserFunc: @escaping ((A) -> Parser<B>)) -> Parser<B> {
     return Parser<B>({ input in 
       self.parse(input).flatMapSuccess({ value, restOfInput in
@@ -67,6 +161,16 @@ class Parser<A> {
     })
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser zero or more times, returning 
+   * an array of the parse results
+   * 
+   *     Parsers.natural().token().many()   
+   *
+   * will return [1,12,123] in "1 12 123"
+   * while it returns [] in "abc"
+   */
   func many() -> Parser<[A]> { 
     return Parser<[A]>({ input in
       self.parse(input)
@@ -79,6 +183,15 @@ class Parser<A> {
     })
   }
 
+  /**
+   * returns a new parser that parses according 
+   * to this parser at least one or more times, returning 
+   * an array of the parse results
+   * 
+   *     Parsers.natural().token().many()   
+   *
+   * will return [1,12,123] in "1 12 123"
+   */
   func some() -> Parser<[A]> {
     return Parser<[A]>({ input in 
       return self.many().parse(input).flatMapSuccess({ value, restOfInput in 
@@ -92,10 +205,10 @@ class Parser<A> {
     })
   }
 
-  func fail<B>() -> Parser<B> {
-    return self.then(Parsers.fail())
-  }
-
+  /**
+   * returns a new array with the provided element as the head
+   * and the rest of the list as the tail
+   */
   static func cons<A>(_ elem: A, _ arr: [A]) -> [A] {
     var newArr = arr
     newArr.insert(elem, at: 0)
@@ -104,6 +217,10 @@ class Parser<A> {
 }
 
 class Parsers {
+  /**
+   * Parser for string literals of the form "<content>"
+   * where <content> is returned
+   */
   static func stringLiteral() -> Parser<String> {
     let escapedQuotes = Parsers.string("\\\"")
     let nonQuote = Parsers.satisfy({ c in c != "\"" }).map(charToString)
@@ -113,24 +230,45 @@ class Parsers {
     return content.surroundedBy(Parsers.char("\""))
   }
 
+  /**
+   * A lazy constructor for parsers
+   *
+   * Allows clients to specify which parser to use 
+   * without immediately invoking the code to create it
+   *
+   * Particularly useful when there is a recursive parser dependency
+   * with lazy initialization
+   * (e.g.: a json object can have any json component as the value,
+   *        thus a parser for a json object will need to use a parser 
+   *        for json objects!)
+   */
   static func delayed<A>(_ parserFunc: @escaping (() -> Parser<A>)) -> Parser<A> {
     return Parser<A>({ input in 
       return parserFunc().parse(input)
     })
   }
 
+  /**
+   * Parses 'natural' numbers, here strictly just positive integers and 0
+   */
   static func natural() -> Parser<Int> {
     return Parsers.digit().some()
                   .map(charsToString)
                   .map({ numStr in Int(numStr)! })
   }
 
+  /**
+   * Attempts to parse with each parser provided in order
+   */
   static func choice<A>(_ parsers: [Parser<A>]) -> Parser<A> {
     return foldr( { parser, acc in Parsers.alternate(parser, acc) }
                 , Parsers.fail()
                 , parsers)
   }
 
+  /**
+   * Attempts to parse with parsers provided in order
+   */
   static func alternate<A>(_ parser1: Parser<A>, _ parser2: Parser<A>) 
                           -> Parser<A> {
     return Parser<A>({ input in
@@ -139,6 +277,9 @@ class Parsers {
     })
   }
 
+  /**
+   * Attempts to parse the provided string as-is
+   */
   static func string(_ str: String) -> Parser<String> {
     return Parser<String>({ input in 
       return input.hasPrefix(str) ? .Success(str, strDrop(input, str.count))
@@ -146,16 +287,25 @@ class Parsers {
     })
   }
 
+  /**
+   * Discards zero or more whitespace characters
+   */
   static func spaces() -> Parser<Void> {
     return space().many().then(null())
   }
 
+  /**
+   * Parses a whitespace character
+   */
   static func space() -> Parser<Character> {
     return satisfy({ c in c.isWhitespace })
   }
 
+  /**
+   * Parses at least one or more letters   
+   */
   static func letters() -> Parser<String> {
-    return asString(letter().many())
+    return asString(letter().some())
   }
 
   static func letter() -> Parser<Character> {
@@ -166,10 +316,17 @@ class Parsers {
     return satisfy({ c in c.isNumber })
   }
 
+  /**
+   * Parses the provided char
+   */
   static func char(_ char: Character) -> Parser<Character> {
     return satisfy({ c in c == char })
   }
 
+  /**
+   * The most primitive parser constructor available,
+   * parsing the next character if it satisfies the provided predicate
+   */
   static func satisfy(_ predicate: @escaping ((Character) -> Bool)) 
                       -> Parser<Character> {
     return Parser({ input in
@@ -183,18 +340,33 @@ class Parsers {
     })
   }
 
+  /**
+   * A parser that unconditionally fails to parse any input
+   * Useful as a default failing 'terminator' for certain combinators
+   */
   static func fail<A>() -> Parser<A> {
     return Parser({ input in .Failure(genFailureMessage(input)) })
   }
 
+  /**
+   * A parser that unconditionally succeeds to parse no input
+   * Useful as a default success 'terminator' for certain combinators
+   */
   static func null() -> Parser<Void> {
     return Parser({ input in .Success((), input) })
   }
 
+  /**
+   * Coerces character array parsers to return the related string
+   */
   static func asString(_ parser: Parser<[Character]>) -> Parser<String> {
     return parser.map(charsToString)
   }
 
+  /**
+   * Generates an error message displaying the current state of the 
+   * input
+   */
   static func genFailureMessage(_ input: String) -> String {
     if strNull(input) {
       return "Exhausted input"
