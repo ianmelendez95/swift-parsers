@@ -70,6 +70,23 @@ class Parser<A> {
     })
   }
 
+  func some() -> Parser<[A]> {
+    return Parser<[A]>({ input in 
+      return self.many().parse(input).flatMapSuccess({ value, restOfInput in 
+        self.name("some")
+            .parse(input)
+            .flatMapSuccess({ value, restOfInput in 
+              self.many().parse(restOfInput)
+                  .mapValue({ values in Parser.cons(value, values) })
+            })
+      })
+    })
+  }
+
+  func fail<B>() -> Parser<B> {
+    return self.then(Parsers.fail())
+  }
+
   static func cons<A>(_ elem: A, _ arr: [A]) -> [A] {
     var newArr = arr
     newArr.insert(elem, at: 0)
@@ -87,10 +104,22 @@ class Parsers {
     return content.surroundedBy(Parsers.char("\""))
   }
 
+  static func delayed<A>(_ parserFunc: @escaping (() -> Parser<A>)) -> Parser<A> {
+    return Parser<A>({ input in 
+      return parserFunc().parse(input)
+    })
+  }
+
   static func natural() -> Parser<Int> {
-    return Parsers.digit().many()
+    return Parsers.digit().some()
                   .map(charsToString)
                   .map({ numStr in Int(numStr)! })
+  }
+
+  static func choice<A>(_ parsers: [Parser<A>]) -> Parser<A> {
+    return foldr( { parser, acc in Parsers.alternate(parser, acc) }
+                , Parsers.fail()
+                , parsers)
   }
 
   static func alternate<A>(_ parser1: Parser<A>, _ parser2: Parser<A>) 
@@ -145,6 +174,10 @@ class Parsers {
     })
   }
 
+  static func fail<A>() -> Parser<A> {
+    return Parser({ input in .Failure(genFailureMessage(input)) })
+  }
+
   static func null() -> Parser<Void> {
     return Parser({ input in .Success((), input) })
   }
@@ -197,6 +230,17 @@ class Parsers {
   static func charsToString(_ chars: [Character]) -> String {
     return String(chars)
   }
+
+  static func foldr<A,B>(_ foldFunc: ((A, B) -> B),
+                         _ initValue: B,
+                         _ arr: [A]) 
+                        -> B {
+    var acc = initValue
+    for item in arr.reversed() {
+      acc = foldFunc(item, acc)
+    }
+    return acc
+  }
 }
 
 enum ParseResult<A> {
@@ -234,5 +278,28 @@ enum ParseResult<A> {
       case .Failure(let msg):
         return failureMap(msg)
     }
+  }
+}
+
+class ParserTests {
+  static func testAlternate() {
+    let hParser = Parsers.char("h")
+    let bParser = Parsers.char("b")
+
+    print(Parsers.alternate(hParser, bParser).parse("bye world"))
+    return
+  }
+
+  static func testChoice() {
+    let aParser = Parsers.char("a")
+    let bParser = Parsers.char("b")
+    let cParser = Parsers.char("c")
+    let dParser = Parsers.char("d")
+
+    print(Parsers.choice([ aParser
+                         , bParser
+                         , cParser
+                         , dParser]).parse("bye world"))
+    return
   }
 }
