@@ -128,7 +128,7 @@ and return the new value `(tagName, value)` - our attribute key value pair"
 
 ### Combinatory Parsing From Scratch
 
-Combinatory parsing is a fantastic manifestation of the fundamental process of 
+Combinatory parsing is simply an extension of the age old process of 
 tackling meaningful challenges - solving smaller problems and combining them to 
 solve larger ones.
 
@@ -366,3 +366,5 @@ class Parser<A> {
   ...
 }
 ```
+
+
