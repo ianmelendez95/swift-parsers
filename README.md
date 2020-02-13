@@ -273,6 +273,9 @@ func flatMap<A,B>(_ parser: Parser<A>, _ bindFunc: ((A) -> Parser<B>))
                  -> Parser<B> {
   return { input in
     if let (result, restOfInput) = parser(input) {
+      // notice how unlike 'then', we use the result
+      // to get our new parser from the bindFunc, and 
+      // invoke that
       return bindFunc(result)(restOfInput)
     }
 
