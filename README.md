@@ -243,7 +243,7 @@ used in Haskell to represent this is `>>`, dubbed the 'sequence'
 operator) 
 
 ```swift
-func sequence<A,B>(_ parser1: Parser<A>, _ parser2: Parser<B>) -> Parser<B> {
+func then<A,B>(_ parser1: Parser<A>, _ parser2: Parser<B>) -> Parser<B> {
   return { input in
     // first we get the rest of the input from the first parser 
     // (discarding the value)
@@ -258,7 +258,7 @@ func sequence<A,B>(_ parser1: Parser<A>, _ parser2: Parser<B>) -> Parser<B> {
   }
 }
 
-sequence(anyCharParser, anyCharParser)("hello")
+then(anyCharParser, anyCharParser)("hello")
 >> ("e", "llo")
 ```
 
