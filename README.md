@@ -57,7 +57,7 @@ We know a tag attribute has the form
   
 Then we break it down to what a 'parser' might see
 
-> <series of letters><equals sign><string literal>
+> \<series of letters\>\<equals sign\>\<string literal\>
 
 Creating the constituent parsers
 
