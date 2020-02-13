@@ -4,7 +4,7 @@ A (not production ready!) parser combinator library.
 
 ### Combinatory Parsing
 
-Combinatory parsing is simply an extension of the age old process of 
+Combinatory Parsing is simply an extension of the age old process of 
 tackling meaningful challenges - solving smaller problems 
 (creating small localized parsers) and combining them to solve larger ones
 (combining these parsers to handle more complex structures).
