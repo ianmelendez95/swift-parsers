@@ -267,7 +267,8 @@ create a function that allows us to use the values and still continue
 defining a parser in the chain.
 
 ```swift
-func flatMap<A,B>(_ parser: Parser<A>, _ bindFunc: Parser<B>) -> Parser<B> {
+func flatMap<A,B>(_ parser: Parser<A>, _ bindFunc: ((A) -> Parser<B>)) 
+                 -> Parser<B> {
   return { input in
     if let (result, restOfInput) = parser(input) {
       return bindFunc(result)(restOfInput)
@@ -337,4 +338,30 @@ map(satisfy({ c in c.isLetter }), { chars in String(chars) })("hello123")
 >> ("hello", "123")
 ```
 
+From here you can easily extract the methods to a Parser class to take advantage
+of Object Oriented semantics, where the first argument of the example combinators
+is now the implicit class variable holding the parsers parsing function. 
+Just to exemplify this:
 
+```swift
+class Parser<A> {
+  let parserFunc: ((String) -> (A, String)?)
+
+  init(_ parserFunc: ((String) -> (A, String)?)) {
+    self.parserFunc = parserFunc
+  }
+
+  // notice how we simply remove the fist parameter
+  func flatMap<A,B>(_ bindFunc: ((A) -> Parser<B>)) -> Parser<B> {
+    return { input in
+      if let (result, restOfInput) = self.parserFunc(input) {
+        return bindFunc(result)(restOfInput)
+      }
+
+      return nil
+    }
+  }
+  
+  ...
+}
+```
