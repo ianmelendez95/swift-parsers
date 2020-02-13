@@ -1,7 +1,9 @@
 ## swift-parsers
-Build your own parsers in Swift! A (not production ready!) parser combinator library.
+Build your own parsers in Swift! 
+A (not production ready!) parser combinator library.
 
-### examples
+
+### Examples
 
 #### My First Char
 
@@ -45,7 +47,8 @@ Parsers.natural()
 >> Success([1, 2, 3, 4], "")
 ```
 
-### example breakdowns 
+
+### Example Breakdown 
 
 #### HTML Tag Attribute
 
@@ -111,7 +114,7 @@ attribute. Now we simply map the value parsed by the
 parser in the closure to our desired result.
 
 ```swift
-let attributeParser: Parser<String> = 
+let attributeParser: Parser<(String, String)> = 
   tagNameParser.flatMap({ tagName in 
     return equals.then(valueParser).map({ value in (tagName, value) })
   })
