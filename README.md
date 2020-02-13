@@ -126,7 +126,215 @@ then parse according to equals, then valueParser,
 and then bind the value of the valueParser to 'value'
 and return the new value `(tagName, value)` - our attribute key value pair"
 
+### Combinatory Parsing From Scratch
 
+Combinatory parsing is a fantastic manifestation of the fundamental process of 
+tackling meaningful challenges - solving smaller problems and combining them to 
+solve larger ones.
 
+Anyway, onto combinatory parsing!
+
+First - what is a parser? 
+
+You'll find many definitions, but it truly feels quite simple.
+It's something that will consume a string and (possibly) identify a value.
+
+```swift
+typealias Parser<A> = ((String) -> A?)
+```
+
+Where A is potentially anything, perhaps even a Parser! 
+Why don't we make a parser that simply parses some input
+and returns the first character.
+
+```swift
+let anyCharParser: Parser<Character> = { input in
+  // if the string is non-empty
+  if (input.count > 0) {
+    // return the first character
+    return input.first
+  } 
+
+  // otherwise, return nil
+  return nil
+}
+
+parseChar("hello")
+>> "h"
+```
+
+Note that the above declaration is equivalent to the formal declaration below
+
+```swift
+func anyCharParser(_ input: String) -> Character? {
+  if (input.count > 0) {
+    return input.first
+  }
+  
+  return nil
+}
+```
+
+So where does the 'combinatory' in 'combinatory parsing' come into play?
+Right now, our parser gives us very little in the way of combining parsers,
+but we can map a parsers value to get some sense of manipulating our parser to get
+a new parser with different behavior.
+
+```swift
+func mapParser<A,B>(_ parser: Parser<A>, _ mapFunc: ((A) -> B)) -> Parser<B> {
+  return { input in
+    // we'll parse as normal
+    if let val = parser(input) {
+      // but return the value mapped appropriately
+      return mapFunc(val)
+    } else {
+      return nil
+    }
+  }
+}
+
+let newParser = mapParser(anyCharParser, { c in String(c) + "i" })
+newParser("h")
+>> "hi"
+```
+
+We've about stretched out what we can do with our existing parser setup, 
+so we clearly need to revisit it. The glaring component missing from our parser is 
+a sense of what's left of our input. 
+Thus, we simply return it as part of our parsing!
+
+```swift
+// we now return (A, String), a.k.a. (\<value\>, \<rest-of-input\>)
+typealias Parser<A> = ((String) -> (A, String)?)
+
+let anyCharParser: Parser<Character> = { input in
+  if (input.count > 0) {
+    // this time, we return the value AND the rest of the string
+    return (input.first, String(str.dropFirst(1)))
+  }  
+
+  return nil
+}
+
+func mapParser<A,B>(_ parser: Parser<A>, _ mapFunc: ((A) -> B)) -> Parser<B> {
+  return { input in
+    // now we get a tuple with the rest of the input
+    if let (value, restOfInput) = parser(input) {
+      // and include the rest of the input in our return value
+      return (mapFunc(val), restOfInput)
+    } else {
+      return nil
+    }
+  }
+}
+
+anyCharParser("hello")
+>> ("h", "ello")
+
+mapParser(anyCharParser, { c in String(c) + "i" })("hello")
+>> ("hi", "ello")
+```
+
+Now we can try to thread two parsers together. We'll implement the simple 
+`then` function to 'sequence' two parsers. (In fact, the operator
+used in Haskell to represent this is (>>), dubbed the 'sequence' 
+operator) 
+
+```swift
+func sequence<A,B>(_ parser1: Parser<A>, _ parser2: Parser<B>) -> Parser<B> {
+  return { input in
+    // first we get the rest of the input from the first parser 
+    // (discarding the value)
+    if let (_, restOfInput1) = parser1(input) {
+
+      // then we 'thread' the rest of the input from the first parser 
+      // into the second parser, returning that result
+      return parser2(restOfInput1)
+    } 
+
+    return nil
+  }
+}
+
+sequence(anyCharParser, anyCharParser)("hello")
+>> ("e", "llo")
+```
+
+This is nice, but we don't want to just discard values! Theres possible content 
+we might be interested in going right down the drain! We need some way 
+to bind intermediate parse results to variables we can use later on, so we'll 
+create a function that allows us to use the values and still continue 
+defining a parser in the chain.
+
+```swift
+func flatMap<A,B>(_ parser: Parser<A>, _ bindFunc: Parser<B>) -> Parser<B> {
+  return { input in
+    if let (result, restOfInput) = parser(input) {
+      return bindFunc(result)(restOfInput)
+    }
+
+    return nil
+  }
+}
+
+flatMap(anyCharParser, { c1 in 
+  return map(anyCharParser, { c2 in  
+    return String(c1) + String(c2)
+  }) 
+})("hello")
+>> ("he", "llo")
+```
+
+Now the last step to getting a minimal combinator library is to be able to 
+describe a simple parser without having to formally define one. 
+In comes `satisfy`!
+
+```swift
+func satisfy(_ charPredicate: ((Character) -> Bool)) -> Parser<Character> {
+  return { input in
+    // notice the difference to 
+    if (input.count > 0 && charPredicate(input.first)) {
+      return (input.first, String(str.dropFirst(1)))
+    } 
+
+    return nil
+  }
+}
+
+satisfy({ c in c == "h" })("hello")
+>> ("h", "ello")
+
+satisfy({ c in c == "b" })("hello")
+>> nil
+```
+
+This combinator library is 'minimal' because (I'm fairly confident) 
+this is theoretically minimal set of functionality needed to parse any possible 
+string to any possible value. Though of course, that would be incredibly tedious.
+
+From here we could start creating other fancier combinators to make our lives 
+easier. Just as a taste, we'll make the `many` combinator.
+
+```swift
+func many<A>(_ parser: Parser<A>) -> Parser<[A]> {
+  return { input in
+    var result: [A] = []  // our array for collecting results
+    var curInput = input  // our variable for holding the running input
+    while let (nextResult, nextInput) = parser(curInput) {
+      // while we get results, update the array and the input
+      result.append(nextResult)
+      curInput = nextInput
+    }
+
+    // return the array of results and rest of the input
+    return (result, curInput)
+  }
+}
+
+func charsToString(_ chars: [Character]) -> String { return String(chars) }
+
+map(satisfy({ c in c.isLetter }), { chars in String(chars) })("hello123")
+>> ("hello", "123")
+```
 
 
