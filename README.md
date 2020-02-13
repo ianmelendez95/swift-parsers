@@ -2,6 +2,14 @@
 Build your own parsers in Swift! 
 A (not production ready!) parser combinator library.
 
+### Combinatory Parsing
+
+Combinatory parsing is simply an extension of the age old process of 
+tackling meaningful challenges - solving smaller problems 
+(creating small localized parsers) and combining them to solve larger ones
+(combining these parsers to handle more complex structures).
+
+Anyways, onto combinatory parsing!
 
 ### Examples
 
@@ -127,12 +135,6 @@ and then bind the value of the valueParser to 'value'
 and return the new value `(tagName, value)` - our attribute key value pair"
 
 ### Combinatory Parsing From Scratch
-
-Combinatory parsing is simply an extension of the age old process of 
-tackling meaningful challenges - solving smaller problems and combining them to 
-solve larger ones.
-
-Anyway, onto combinatory parsing!
 
 First - what is a parser? 
 
