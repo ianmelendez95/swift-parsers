@@ -293,7 +293,8 @@ In comes `satisfy`!
 ```swift
 func satisfy(_ charPredicate: ((Character) -> Bool)) -> Parser<Character> {
   return { input in
-    // notice the difference to 
+    // notice the difference to the anyCharParser, 
+    // where now we also check the predicate
     if (input.count > 0 && charPredicate(input.first)) {
       return (input.first, String(str.dropFirst(1)))
     } 
@@ -332,8 +333,6 @@ func many<A>(_ parser: Parser<A>) -> Parser<[A]> {
   }
 }
 
-func charsToString(_ chars: [Character]) -> String { return String(chars) }
-
 map(satisfy({ c in c.isLetter }), { chars in String(chars) })("hello123")
 >> ("hello", "123")
 ```
@@ -351,20 +350,56 @@ class Parser<A> {
     self.parserFunc = parserFunc
   }
 
+  parse(_ input: String) -> (A, String)? {
+    return self.parserFunc
+  }
+
   // notice how we simply remove the fist parameter
-  func flatMap<A,B>(_ bindFunc: ((A) -> Parser<B>)) -> Parser<B> {
-    return { input in
+  func flatMap<B>(_ bindFunc: ((A) -> Parser<B>)) -> Parser<B> {
+    // wrap the function in the Parser initializer 
+    return Parser<B>({ input in
       // and invoke the implicit class variable instead
       if let (result, restOfInput) = self.parserFunc(input) {
         return bindFunc(result)(restOfInput)
       }
 
       return nil
-    }
+    })
   }
   
+  func map<B>(_ mapFunc: ((A) -> B)) -> Parser<B> {
+    return Parser<B>({ input in
+      if let (value, restOfInput) = self.parserFunc(input) {
+        return (mapFunc(value), restOfInput)
+      } else {
+        return nil
+      }
+    })
+  }
+
   ...
+
 }
+
+// the age old OO utility class, the plural of the related class name
+// (i.e. Path and Paths in Java)
+class Parsers {
+  static func satisfy(_ charPredicate: ((Character) -> Bool)) 
+                     -> Parser<Character> {
+    return { input in
+      if (input.count > 0 && charPredicate(input.first)) {
+        return (input.first, String(str.dropFirst(1)))
+      } 
+
+      return nil
+    }
+  }
+}
+
+Parsers.satisfy({ c in c.isLetter }).flatMap({ c1 in 
+  Parsers.satisfy({ c in c.isNumber }).map({ c2 in String(c1) + String(c2) })
+}).parse("a1 steak sauce")
+>> ("a1", " steak sauce")
 ```
 
 
