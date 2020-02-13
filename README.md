@@ -237,7 +237,7 @@ mapParser(anyCharParser, { c in String(c) + "i" })("hello")
 
 Now we can try to thread two parsers together. We'll implement the simple 
 `then` function to 'sequence' two parsers. (In fact, the operator
-used in Haskell to represent this is (>>), dubbed the 'sequence' 
+used in Haskell to represent this is `>>`, dubbed the 'sequence' 
 operator) 
 
 ```swift
