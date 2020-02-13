@@ -354,6 +354,7 @@ class Parser<A> {
   // notice how we simply remove the fist parameter
   func flatMap<A,B>(_ bindFunc: ((A) -> Parser<B>)) -> Parser<B> {
     return { input in
+      // and invoke the implicit class variable instead
       if let (result, restOfInput) = self.parserFunc(input) {
         return bindFunc(result)(restOfInput)
       }
