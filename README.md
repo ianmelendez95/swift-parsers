@@ -2,6 +2,12 @@
 Build your own parsers in Swift! 
 A (not production ready!) parser combinator library.
 
+| TOC                              |
+| -------------------------------- |
+| [Examples](###Examples)          |
+| Example Breakdown                |
+| Combinatory Parsing From Scratch | 
+
 ### Combinatory Parsing
 
 Combinatory Parsing is simply an extension of the age old process of 
@@ -11,7 +17,7 @@ tackling meaningful challenges - solving smaller problems
 
 Anyways, onto combinatory parsing!
 
-### Examples
+(###Examples)
 
 #### My First Char
 
