@@ -61,6 +61,9 @@ Parsers.natural()
 >> Success([1, 2, 3, 4], "")
 ```
 
+#### JSON and HTML Tag Parsers
+
+Check out the `example` directory for more advanced usages of the library, particularly the JSON parser, which utilizes every aspect of the library.
 
 ### Example Breakdown 
 
