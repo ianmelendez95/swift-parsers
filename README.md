@@ -4,7 +4,7 @@ A (not production ready!) parser combinator library.
 
 | TOC                              |
 | -------------------------------- |
-| [Examples](###Examples)          |
+| [Examples](#examples)            |
 | Example Breakdown                |
 | Combinatory Parsing From Scratch | 
 
@@ -17,7 +17,7 @@ tackling meaningful challenges - solving smaller problems
 
 Anyways, onto combinatory parsing!
 
-(###Examples)
+### Examples
 
 #### My First Char
 
