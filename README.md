@@ -310,7 +310,7 @@ func satisfy(_ charPredicate: ((Character) -> Bool)) -> Parser<Character> {
     // notice the difference to the anyCharParser, 
     // where now we also check the predicate
     if (input.count > 0 && charPredicate(input.first)) {
-      return (input.first, String(str.dropFirst(1)))
+      return (input.first, String(input.dropFirst(1)))
     } 
 
     return nil
@@ -347,7 +347,7 @@ func many<A>(_ parser: Parser<A>) -> Parser<[A]> {
   }
 }
 
-map(satisfy({ c in c.isLetter }), { chars in String(chars) })("hello123")
+map(satisfy({ c in c.isLetter }).many(), { chars in String(chars) })("hello123")
 >> ("hello", "123")
 ```
 
