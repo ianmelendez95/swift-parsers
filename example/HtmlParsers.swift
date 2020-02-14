@@ -1,4 +1,4 @@
-class HtmlParserExample {
+class HtmlParsers {
   typealias EmptyHtmlTag = (String, [String: String]) // (tag name, attributes)
 
   static func testEmptyHtmlTag() {
