@@ -347,7 +347,7 @@ func many<A>(_ parser: Parser<A>) -> Parser<[A]> {
   }
 }
 
-map(satisfy({ c in c.isLetter }).many(), { chars in String(chars) })("hello123")
+map(many(satisfy({ c in c.isLetter })), { chars in String(chars) })("hello123")
 >> ("hello", "123")
 ```
 
