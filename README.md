@@ -2,11 +2,11 @@
 Build your own parsers in Swift! 
 A (not production ready!) parser combinator library.
 
-| TOC                              |
-| -------------------------------- |
-| [Examples](#examples)            |
-| Example Breakdown                |
-| Combinatory Parsing From Scratch | 
+| TOC                                                                   |
+| --------------------------------------------------------------------- |
+| [Examples](#examples)                                                 |
+| [Example Breakdown](#example-breakdown)                               |
+| [Combinatory Parsing From Scratch](#combinatory-parsing-from-scratch) | 
 
 ### Combinatory Parsing
 
